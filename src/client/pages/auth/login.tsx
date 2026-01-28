@@ -41,6 +41,7 @@ import {
 import { useEffect, useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import useSWR from 'swr';
+import { Turnstile } from '@marsidev/react-turnstile';
 import GenericError from '../../error/GenericError';
 import styles from './auth.module.css';
 
@@ -86,6 +87,7 @@ export default function Login() {
   const [passkeyErrored, setPasskeyErrored] = useState(false);
   const [passkeyLoading, setPasskeyLoading] = useState(false);
   const [inviteModalOpened, setInviteModalOpened] = useState(false);
+  const [turnstileToken, setTurnstileToken] = useState<string | null>(null);
 
   const [secureModal, setSecureModal] = useState(false);
 
@@ -109,10 +111,23 @@ export default function Login() {
 
     const { username, password } = values;
 
+    // Check Turnstile if enabled
+    if (config?.turnstile.enabled && !turnstileToken) {
+      notifications.show({
+        title: 'CAPTCHA required',
+        message: 'Please complete the CAPTCHA verification',
+        color: 'red',
+        icon: <IconX size='1rem' />,
+      });
+      setPinDisabled(false);
+      return;
+    }
+
     const { data, error } = await fetchApi<Response['/api/auth/login']>('/api/auth/login', 'POST', {
       username,
       password,
       code,
+      turnstileToken: turnstileToken ?? undefined,
     });
 
     if (error) {
@@ -439,6 +454,18 @@ export default function Login() {
                     }}
                     {...form.getInputProps('password')}
                   />
+
+                  {config?.turnstile.enabled && (
+                    <Turnstile
+                      siteKey={config.turnstile.siteKey!}
+                      onSuccess={(token: string) => setTurnstileToken(token)}
+                      onError={() => setTurnstileToken(null)}
+                      onExpire={() => setTurnstileToken(null)}
+                      options={{
+                        theme: 'dark',
+                      }}
+                    />
+                  )}
 
                   <Button
                     size='md'
