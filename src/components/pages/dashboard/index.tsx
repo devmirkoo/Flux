@@ -5,7 +5,18 @@ import { bytes } from '@/lib/bytes';
 import useLogin from '@/lib/hooks/useLogin';
 import { isAdministrator } from '@/lib/role';
 import { Button, Group, Paper, ScrollArea, SimpleGrid, Skeleton, Table, Text, Title } from '@mantine/core';
-import { IconDeviceSdCard, IconEyeFilled, IconFiles, IconGraphFilled, IconLink, IconStarFilled } from '@tabler/icons-react';
+import {
+  IconDeviceSdCard,
+  IconEyeFilled,
+  IconFiles,
+  IconFileText,
+  IconGraphFilled,
+  IconLink,
+  IconStarFilled,
+  IconTicket,
+  IconUserPlus,
+  IconUsers,
+} from '@tabler/icons-react';
 import { lazy, Suspense } from 'react';
 import { Link } from 'react-router-dom';
 import useSWR from 'swr';
@@ -21,6 +32,9 @@ export default function DashboardHome() {
 
   const { data: diskUsage, isLoading: diskUsageLoading } = useSWR<Response['/api/system/disk-usage']>(
     user && isAdministrator(user.role) ? '/api/system/disk-usage' : null,
+  );
+  const { data: adminStats, isLoading: adminStatsLoading } = useSWR<Response['/api/admin/stats']>(
+    user && isAdministrator(user.role) ? '/api/admin/stats' : null,
   );
 
   // Determine color based on remaining space percentage
@@ -171,15 +185,6 @@ export default function DashboardHome() {
 
             <Stat Icon={IconLink} title='Links created' value={stats!.urlsCreated} />
             <Stat Icon={IconLink} title='Total link views' value={Math.round(stats!.urlViews)} />
-
-            {user && isAdministrator(user.role) && (
-              <Stat
-                Icon={IconDeviceSdCard}
-                title='Disk Space Available'
-                value={diskUsageLoading ? '...' : bytes(diskUsage!.availableBytes)}
-                color={getDiskColor()}
-              />
-            )}
           </SimpleGrid>
 
           {Object.keys(stats!.sortTypeCount).length !== 0 && (
@@ -209,6 +214,47 @@ export default function DashboardHome() {
                   </Table>
                 </ScrollArea.Autosize>
               </Paper>
+            </>
+          )}
+
+          {user && isAdministrator(user.role) && (
+            <>
+              <Title order={2} mt='lg'>
+                Administration Stats
+              </Title>
+              <Text size='sm' c='dimmed' mb='xs'>
+                These statistics are based on all uploads across the system.
+              </Text>
+
+              {adminStatsLoading ? (
+                <SimpleGrid cols={{ base: 1, md: 2, lg: 4 }} spacing={{ base: 'sm', md: 'md' }}>
+                  {[...Array(6)].map((_, i) => (
+                    <Skeleton key={i} height={105} />
+                  ))}
+                </SimpleGrid>
+              ) : (
+                <SimpleGrid cols={{ base: 1, md: 2, lg: 4 }} spacing={{ base: 'sm', md: 'md' }}>
+                  <Stat Icon={IconFiles} title='Total Files Uploaded' value={adminStats!.totalFiles} />
+                  <Stat Icon={IconFileText} title='Total Text Files' value={adminStats!.totalTextFiles} />
+                  <Stat Icon={IconUsers} title='Registered Accounts' value={adminStats!.registeredAccounts} />
+                  <Stat
+                    Icon={IconUserPlus}
+                    title='Last Registered Account'
+                    value={
+                      adminStats!.lastRegisteredAccount
+                        ? `${adminStats!.lastRegisteredAccount.username} (${adminStats!.lastRegisteredAccount.id.slice(0, 8)}...)`
+                        : 'None'
+                    }
+                  />
+                  <Stat Icon={IconTicket} title='Active Invites' value={adminStats!.activeInvites} />
+                  <Stat
+                    Icon={IconDeviceSdCard}
+                    title='Disk Space Available'
+                    value={diskUsageLoading ? '...' : bytes(diskUsage!.availableBytes)}
+                    color={getDiskColor()}
+                  />
+                </SimpleGrid>
+              )}
             </>
           )}
         </>
