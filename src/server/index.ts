@@ -103,8 +103,8 @@ async function main() {
   await server.register(fastifySwagger, {
     openapi: {
       info: {
-        title: 'Zipline',
-        description: 'Zipline API',
+        title: 'vxlt.space',
+        description: 'vxlt.space API',
         version: version,
       },
       servers: [],
